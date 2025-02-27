@@ -349,7 +349,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   recognition.onresult = function (event) {
     const speechResult = event.results[0][0].transcript;
-    console.log(Recognized: ${speechResult});
+    console.log(`Recognized: ${speechResult}`);
 
     if (currentStep === 0) {
       taskData.title = speechResult;
@@ -386,3 +386,5 @@ document.addEventListener("DOMContentLoaded", function () {
     speakMessage("There was an error with speech recognition. Please try again.", closeSpeechModal);
   };
 });
+
+
