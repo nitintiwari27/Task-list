@@ -270,6 +270,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const modal = document.createElement("div");
   modal.classList.add("speech-modal");
   modal.innerHTML = `<div class='speech-modal-content'>
+                        <p id='speech-question'></p>
                         <p id='speech-text'>Listening...</p>
                         <div class='listening-animation'></div>
                     </div>`;
@@ -287,13 +288,14 @@ document.addEventListener("DOMContentLoaded", function () {
   let taskData = { title: "", type: "", description: "" };
   const steps = [
     "What is the task title?",
-    "What is the task type?",
+    "What is the task level? You can say Easy, Medium, or Hard.",
     "What is the task description?",
   ];
   let isListening = false;
 
   micButton.addEventListener("click", function () {
     if (isListening) {
+      isListening = false;
       closeSpeechModal();
     } else {
       micButton.innerHTML = '<i class="fas fa-times"></i>';
@@ -303,26 +305,51 @@ document.addEventListener("DOMContentLoaded", function () {
       currentStep = 0;
       taskData = { title: "", type: "", description: "" };
       isListening = true;
-      askQuestion();
+      updateSpeechText("Speaking...");
+      speakMessage("Welcome! I will ask you some questions to create a task.", askQuestion, false);
     }
   });
 
-  function askQuestion() {
+  function updateSpeechText(text) {
+    document.getElementById("speech-text").innerText = text;
+  }
+
+  function updateSpeechQuestion(text) {
+    document.getElementById("speech-question").innerText = text;
+  }
+
+  function speakMessage(message, callback, printMsg = true) {
     const speechSynthesis = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(steps[currentStep]);
+    const utterance = new SpeechSynthesisUtterance(message);
     utterance.lang = "en-US";
     utterance.rate = 1;
-    document.getElementById("speech-text").innerText = steps[currentStep];
+    updateSpeechText("Speaking...");
+    if(printMsg){
+      updateSpeechQuestion(message);
+    }
     speechSynthesis.speak(utterance);
-
     utterance.onend = function () {
-      recognition.start();
+      if (callback) callback();
     };
+  }
+
+  function askQuestion() {
+    if (currentStep < steps.length) {
+      updateSpeechQuestion(steps[currentStep]);
+      setTimeout(() => {
+        speakMessage(steps[currentStep], function () {
+          updateSpeechText("Listening...");
+          recognition.start();
+        });
+      }, 500); // Small delay to ensure visibility
+    } else {
+      speakMessage("Thank you for providing the information. Your task has been recorded.", fillTaskForm);
+    }
   }
 
   recognition.onresult = function (event) {
     const speechResult = event.results[0][0].transcript;
-    console.log(`Recognized: ${speechResult}`);
+    console.log(Recognized: ${speechResult});
 
     if (currentStep === 0) {
       taskData.title = speechResult;
@@ -333,11 +360,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     currentStep++;
-    if (currentStep < steps.length) {
-      askQuestion();
-    } else {
-      fillTaskForm();
-    }
+    askQuestion();
   };
 
   function fillTaskForm() {
@@ -346,7 +369,6 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("taskDescription").value = taskData.description;
     closeSpeechModal();
     handleSubmit();
-    alert("Task details added! You can now submit.");
   }
 
   function closeSpeechModal() {
@@ -361,7 +383,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   recognition.onerror = function (event) {
     console.error("Speech recognition error: ", event.error);
-    alert("Error in speech recognition. Please try again.");
-    closeSpeechModal();
+    speakMessage("There was an error with speech recognition. Please try again.", closeSpeechModal);
   };
 });
